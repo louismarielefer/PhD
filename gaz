@@ -8,5 +8,5 @@ data_snot <- read.table("Data_SNOTourbieres_03_10_2024_13_06_21.csv", header=TRU
 data_snot
 names(data_snot)
 View(data_snot)
-ggplot(data_snot, aes(x = Date, y = value, col=variable)) + geom_point()  
+ggplot(data_snot, aes(x = Date, y = value, col=variable)) + geom_point() + geom_smooth()
    
