@@ -1,0 +1,8 @@
+setwd("C:/PhD ISTO/") #setting the working directory
+install.packages(readxl)
+library(readxl)
+BDD_LaGuette <- read.excel("BDD_Hydrochimie_LaGuette_2024-09-20.xlsx",sheet="BD_suivi_labo") 
+head(BDD_LaGuette)
+names(BDD_LaGuette) #see the names of the variables
+summary(BDD_LaGuette)
+attach(BDD_LaGuette) #to use longitude and latitude after
