@@ -1,8 +1,10 @@
-setwd("C:/PhD ISTO/") #setting the working directory
+setwd("C:/PhD ISTO/") 
 install.packages(readxl)
 library(readxl)
-BDD_LaGuette <- read.excel("BDD_Hydrochimie_LaGuette_2024-09-20.xlsx",sheet="BD_suivi_labo") 
+BDD_LaGuette <- read_excel("BDD_Hydrochimie_LaGuette_2024-09-20.xlsx",sheet="BD_suivi_labo") 
 head(BDD_LaGuette)
-names(BDD_LaGuette) #see the names of the variables
+names(BDD_LaGuette)
 summary(BDD_LaGuette)
-attach(BDD_LaGuette) #to use longitude and latitude after
+attach(BDD_LaGuette)
+library(ggplot2)
+ggplot(BDD_LaGuette, aes(x = [dSi] mg,l-1, y = DOC mg/L), x>02/12/2020,y>02/12/2020) + geom_point()
