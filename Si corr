@@ -1,10 +1,154 @@
-setwd("C:/PhD ISTO/") 
-install.packages(readxl)
-library(readxl)
-BDD_LaGuette <- read_excel("BDD_Hydrochimie_LaGuette_2024-09-20.xlsx",sheet="BD_suivi_labo") 
-head(BDD_LaGuette)
-names(BDD_LaGuette)
-summary(BDD_LaGuette)
-attach(BDD_LaGuette)
-library(ggplot2)
-ggplot(BDD_LaGuette, aes(x = [dSi] mg,l-1, y = DOC mg/L), x>02/12/2020,y>02/12/2020) + geom_point()
+library(tidyverse)
+library(janitor)
+library(paletteer)
+
+library(ggpmisc)
+
+library(conflicted)
+library(pracma)
+library(ggpubr)
+library(forecast)
+library(formatR)
+
+
+formatR::tidy_source()
+conflict_prefer("filter", "dplyr")
+conflict_prefer("select", "dplyr")
+conflict_prefer("summarise", "dplyr")
+conflict_prefer("relocate", "dplyr")
+conflict_prefer("mutate", "dplyr")
+conflict_prefer("group_by", "dplyr")
+conflict_prefer("arrange", "dplyr")
+conflict_prefer("transmute", "dplyr")
+conflict_prefer("ggplot", "ggplot2")
+conflict_prefer("ymd", "lubridate")
+
+
+# importation ----------------------------------
+
+dir_fiche<-"U:/Donnees/LaGuette_Hydrochimie/2_TRAITEMENT_chimie/BDD_Hydrochimie_LaGuette_2024-09-20.xlsx"
+dir<-"U:/Donnees/LaGuette_BioGeo/EXO2_Chroniques/compil"
+
+
+date_debut<-"2021-09-01" 
+date_fin<-"2024-08-01" 
+
+
+data_raw <- read_excel(dir_fiche, sheet = 2,col_names=TRUE, range = cell_cols("A:H"),
+                         col_types = c(date = "date", site = "text", dSi = "numeric", edSi ="numeric", TN= "skip",
+                                        eTN="skip" , eDOC= "numeric",DOC = "numeric")) %>%
+  filter(site=="FOSSE" | site =="riviere"| site =="CD_1"| site =="PZ2_U"
+         | site =="PZ2_D"| site =="PZ5_U"| site =="PZ4_D"| site =="CU_2") %>%
+  mutate(site = as.factor(site))
+  
+  
+  
+  data_long <- data_raw %>%
+  select(!starts_with("e")) %>%
+  gather(., "var", "value", -c("date","site"))%>%
+  left_join(.,{data_raw %>%
+      select(date, site, starts_with("e")) %>%
+      gather(., "var", "error", -c("date","site"))%>%
+      mutate(var = str_sub(var,2))},
+      by=c("date","site","var")) %>%
+  mutate(date=ymd(date), var=as.factor(var)) %>%
+  distinct(date, site,var, .keep_all =TRUE) 
+  
+  
+  
+  data_nest_var <- data_long %>%
+    filter( date>date_debut, date<date_fin ) %>%
+    mutate(mois = as.factor(month(date, label = TRUE, abbr = TRUE))) %>%
+    group_by(var) %>%
+    nest() 
+  
+  
+  # i<-"DOC"
+  
+  # # par mois
+  
+  for (i in data_nest_var$var) {
+    plot_i <-data_nest_var%>%
+      filter(var==i) %>%
+      unnest(data) %>%
+      ggplot(aes(x=floor_date(date, unit = "month") , y=value, color=mois)) +
+      geom_point(size=3,na.rm = TRUE, shape = 18) +
+      geom_path(na.rm = TRUE, color="black", linetype  = 2, alpha=0.9,linewidth=.3) +
+      geom_errorbar(aes(ymin=value-error, ymax=value+error), width=25, linewidth=.7,
+                    alpha=0.85, position=position_dodge(1)) +
+      scale_x_date( breaks = "year", date_labels = "%Y") +
+      theme( panel.grid.major.x = element_line(color = "black",linewidth = 0.3,linetype = 2),
+             axis.title.x = element_blank(),plot.title = element_text(hjust=0.5),
+             legend.title = element_blank(), legend.position = "bottom",legend.direction = "horizontal" )+
+      guides(color=guide_legend(nrow=1)) +
+      scale_color_paletteer_d("pals::tol")+
+      geom_text(aes(x=floor_date(date, unit = "year"), label = (year(date)), y = max(value,na.rm = TRUE)),
+                # position = position_dodge(0.9),
+                hjust = -0.5, color="black") +
+      facet_wrap(.~fct_relevel(site, c("riviere", "CU_2", "PZ2_U", "PZ5_U",
+                                       "FOSSE", "CD_1", "PZ2_D", "PZ4_D")), ncol=4) +
+      ggtitle(str_c("[",i,"]")) +
+      ylab(if_else(i%in%c("SUVA","Abs254"), "ratio","mg/l (+2σ)"))
+    
+    ggsave(str_c("var_mois/",i,"_barplot_mois",date_debut,"_",date_fin,".jpg"), plot=plot_i,width = 30, height = 21, units = "cm")
+    
+  }
+  
+  data_raw%>%
+    # filter( date>=date_debut, date<=date_fin ) %>%
+    mutate(mois = as.factor(month(date, label = TRUE, abbr = TRUE))) %>%
+  ggplot(.,aes(x=dSi , y=DOC)) +
+    geom_point( aes(color=mois),size=3,na.rm = TRUE, shape = 18) +
+    stat_poly_line(linetype="dashed", size=0.25,se = TRUE) +
+    stat_poly_eq(use_label(c("eq", "R2")), na.rm=TRUE) +
+    geom_abline(intercept = 0, slope = 1, color="red") +
+    facet_wrap(.~fct_relevel(site, c("riviere", "CU_2", "PZ2_U", "PZ5_U",
+                                     "FOSSE", "CD_1", "PZ2_D", "PZ4_D")), ncol=4)+
+    theme( plot.title = element_text(hjust=0.5),
+           legend.title = element_blank(), legend.position = "bottom",legend.direction = "horizontal" )+
+    guides(color=guide_legend(nrow=1)) +
+    scale_color_paletteer_d("pals::tol")
+
+  data_raw%>%
+    # filter( date>=date_debut, date<=date_fin ) %>%
+    mutate(mois = as.factor(month(date, label = TRUE, abbr = TRUE))) %>%
+    ggplot(.,aes(x=dSi , y=DOC)) +
+    geom_point( aes(color=site),size=3,na.rm = TRUE, shape = 18) +
+    stat_poly_line(linetype="dashed", size=0.25,se = TRUE) +
+    stat_poly_eq(use_label(c("eq", "R2")), na.rm=TRUE) +
+    geom_abline(intercept = 0, slope = 1, color="red") +
+    theme( plot.title = element_text(hjust=0.5),
+           legend.title = element_blank(), legend.position = "bottom",legend.direction = "horizontal" )+
+    guides(color=guide_legend(nrow=1)) +
+    scale_color_paletteer_d("pals::tol")
+  
+  
+  
+  
+  data_long%>%
+    ggplot(.,aes(x=dSi , y=DOC)) +
+    geom_point( aes(color=mois),size=3,na.rm = TRUE, shape = 18) +
+    stat_poly_line(linetype="dashed", size=0.25,se = TRUE) +
+    stat_poly_eq(use_label(c("eq", "R2")), na.rm=TRUE) +
+    geom_abline(intercept = 0, slope = 1, color="red") +
+    facet_wrap(.~fct_relevel(site, c("riviere", "CU_2", "PZ2_U", "PZ5_U",
+                                     "FOSSE", "CD_1", "PZ2_D", "PZ4_D")), ncol=4)
+  
+  
+  +
+    geom_path(na.rm = TRUE, color="black", linetype  = 2, alpha=0.9,linewidth=.3) +
+    geom_errorbar(aes(ymin=value-error, ymax=value+error), width=25, linewidth=.7,
+                  alpha=0.85, position=position_dodge(1)) +
+    scale_x_date( breaks = "year", date_labels = "%Y") +
+    theme( panel.grid.major.x = element_line(color = "black",linewidth = 0.3,linetype = 2),
+           axis.title.x = element_blank(),plot.title = element_text(hjust=0.5),
+           legend.title = element_blank(), legend.position = "bottom",legend.direction = "horizontal" )+
+    guides(color=guide_legend(nrow=1)) +
+    scale_color_paletteer_d("pals::tol")+
+    geom_text(aes(x=floor_date(date, unit = "year"), label = (year(date)), y = max(value,na.rm = TRUE)),
+              # position = position_dodge(0.9),
+              hjust = -0.5, color="black") +
+    facet_wrap(.~fct_relevel(site, c("riviere", "CU_2", "PZ2_U", "PZ5_U",
+                                     "FOSSE", "CD_1", "PZ2_D", "PZ4_D")), ncol=4) +
+    ggtitle(str_c("[",i,"]")) +
+    ylab(if_else(i%in%c("SUVA","Abs254"), "ratio","mg/l (+2σ)"))
