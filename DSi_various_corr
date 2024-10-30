@@ -12,10 +12,12 @@ library(ggpubr)
 library(forecast)
 library(formatR)
 library(readxl)
+library(corrplot)
+library(ggplot2)
 
 #gestion des conflits pour une même fonction se trouvant dans des packages différents
 #spécifie dans quel package prendre la fonction
-formatR::tidy_source()
+#formatR::tidy_source()
 conflict_prefer("filter", "dplyr")
 conflict_prefer("select", "dplyr")
 conflict_prefer("summarise", "dplyr")
@@ -46,13 +48,13 @@ data_raw <- read_excel(dir_fiche, sheet = 2,col_names=TRUE, range = cell_cols("A
                                      DIC="skip", eDIC="skip", Alcalinité="skip",
                                      NO2="skip", SO4="skip", 
                                      NO3="skip", PO4="skip",Cl="numeric",NH4="skip",
-                                      Na="numeric", Mg="numeric",
+                                     Na="numeric", Mg="numeric",
                                      K="numeric", Ca= "numeric")
                                      ) %>%
   filter(site=="FOSSE" | site =="riviere"| site =="CD_1"| site =="PZ2_U"
          | site =="PZ2_D"| site =="PZ5_U"| site =="PZ4_D"| site =="CU_2") %>% #conservation uniquement des stations d'intérêt
   mutate(site = as.factor(site)) #mutate:création d'une nouvelle variable-col avec
-#as.factor: les sites qui étaient des chaines de caractère deviennent des facteurs pour plot nos données (ex: plot moi la relation Si DOC par site)
+                                  #as.factor: les sites qui étaient des chaines de caractère deviennent des facteurs pour plot nos données (ex: plot moi la relation Si DOC par site)
 View(data_raw)  
 summary(data_raw)
 names(data_raw)
@@ -80,7 +82,8 @@ View(data_nest_var)
 ###########################################
 #DOC=f(DSi)
 
-#plot d'un seul graph DOC=f(DSi) avec les valeurs de tous les sites sur le même graph et coloriage par mois
+#graph=1
+#factor=mois
 
 data_raw%>%
   # filter( date>=date_debut, date<=date_fin ) %>%
@@ -95,7 +98,10 @@ data_raw%>%
   guides(color=guide_legend(nrow=1)) +
   scale_color_paletteer_d("pals::tol")
 
-#plot d'un seul graph DOC=f(DSi) avec les valeurs de tous les sites sur le même graph et coloriage par site
+
+
+#graph=1
+#factor=site
 data_raw%>%
   # filter( date>=date_debut, date<=date_fin ) %>%
   mutate(mois = as.factor(month(date, label = TRUE, abbr = TRUE))) %>%
@@ -109,7 +115,9 @@ data_raw%>%
   guides(color=guide_legend(nrow=1)) +
   scale_color_paletteer_d("pals::tol")
 
-#plot d'un panel de graph DOC=f(Dsi) par site et coloriage des points par mois 
+
+#graph=panel
+#factor=site
 data_raw%>%
   # filter( date>=date_debut, date<=date_fin ) %>%
   mutate(mois = as.factor(month(date, label = TRUE, abbr = TRUE))) %>%
@@ -127,8 +135,8 @@ data_raw%>%
 ##################################################
 #TN=f(DSi)
 
-#plot d'un seul graph TN=f(DSi) avec les valeurs de tous les sites sur le même graph et coloriage par mois
-data_raw%>%
+#graph=1
+#factor=mois
   # filter( date>=date_debut, date<=date_fin ) %>%
   mutate(mois = as.factor(month(date, label = TRUE, abbr = TRUE))) %>%
   ggplot(.,aes(x=dSi , y=TN)) +
@@ -141,7 +149,8 @@ data_raw%>%
   guides(color=guide_legend(nrow=1)) +
   scale_color_paletteer_d("pals::tol")
 
-#plot d'un seul graph TN=f(DSi) avec les valeurs de tous les sites sur le même graph et coloriage par site
+#graph=1
+#factor=site
 data_raw%>%
   # filter( date>=date_debut, date<=date_fin ) %>%
   mutate(mois = as.factor(month(date, label = TRUE, abbr = TRUE))) %>%
@@ -155,7 +164,8 @@ data_raw%>%
   guides(color=guide_legend(nrow=1)) +
   scale_color_paletteer_d("pals::tol")
 
-#plot d'un panel de graph TN=f(Dsi) par site et coloriage des points par mois 
+#graph=panel
+#factor=site
 data_raw%>%
   # filter( date>=date_debut, date<=date_fin ) %>%
   mutate(mois = as.factor(month(date, label = TRUE, abbr = TRUE))) %>%
@@ -173,7 +183,8 @@ data_raw%>%
 #####################################################
 #Na=f(DSi)
 
-#plot d'un seul graph Na=f(DSi) avec les valeurs de tous les sites sur le même graph et coloriage par mois
+#graph=1
+#factor=mois
 data_raw%>%
   # filter( date>=date_debut, date<=date_fin ) %>%
   mutate(mois = as.factor(month(date, label = TRUE, abbr = TRUE))) %>%
@@ -187,7 +198,9 @@ data_raw%>%
   guides(color=guide_legend(nrow=1)) +
   scale_color_paletteer_d("pals::tol")
 
-#plot d'un seul graph Na=f(DSi) avec les valeurs de tous les sites sur le même graph et coloriage par site
+
+#graph=1
+#factor=site
 data_raw%>%
   # filter( date>=date_debut, date<=date_fin ) %>%
   mutate(mois = as.factor(month(date, label = TRUE, abbr = TRUE))) %>%
@@ -201,7 +214,8 @@ data_raw%>%
   guides(color=guide_legend(nrow=1)) +
   scale_color_paletteer_d("pals::tol")
 
-#plot d'un panel de graph Na=f(Dsi) par site et coloriage des points par mois 
+#graph=panel
+#factor=site
 data_raw%>%
   # filter( date>=date_debut, date<=date_fin ) %>%
   mutate(mois = as.factor(month(date, label = TRUE, abbr = TRUE))) %>%
@@ -220,7 +234,8 @@ data_raw%>%
 #################################################
 #Mg=f(DSi)
 
-#plot d'un seul graph Mg=f(DSi) avec les valeurs de tous les sites sur le même graph et coloriage par mois
+#graph=1
+#factor=mois
 data_raw%>%
   # filter( date>=date_debut, date<=date_fin ) %>%
   mutate(mois = as.factor(month(date, label = TRUE, abbr = TRUE))) %>%
@@ -234,7 +249,8 @@ data_raw%>%
   guides(color=guide_legend(nrow=1)) +
   scale_color_paletteer_d("pals::tol")
 
-#plot d'un seul graph Mg=f(DSi) avec les valeurs de tous les sites sur le même graph et coloriage par site
+#graph=1
+#factor=site
 data_raw%>%
   # filter( date>=date_debut, date<=date_fin ) %>%
   mutate(mois = as.factor(month(date, label = TRUE, abbr = TRUE))) %>%
@@ -248,7 +264,8 @@ data_raw%>%
   guides(color=guide_legend(nrow=1)) +
   scale_color_paletteer_d("pals::tol")
 
-#plot d'un panel de graph Mg=f(Dsi) par site et coloriage des points par mois 
+#graph=panel
+#factor=site
 data_raw%>%
   # filter( date>=date_debut, date<=date_fin ) %>%
   mutate(mois = as.factor(month(date, label = TRUE, abbr = TRUE))) %>%
@@ -267,7 +284,8 @@ data_raw%>%
 ############################################"
 #K=f(DSi)
 
-#plot d'un seul graph K=f(DSi) avec les valeurs de tous les sites sur le même graph et coloriage par mois
+#graph=1
+#factor=mois
 data_raw%>%
   # filter( date>=date_debut, date<=date_fin ) %>%
   mutate(mois = as.factor(month(date, label = TRUE, abbr = TRUE))) %>%
@@ -281,7 +299,8 @@ data_raw%>%
   guides(color=guide_legend(nrow=1)) +
   scale_color_paletteer_d("pals::tol")
 
-#plot d'un seul graph K=f(DSi) avec les valeurs de tous les sites sur le même graph et coloriage par site
+#graph=1
+#factor=site
 data_raw%>%
   # filter( date>=date_debut, date<=date_fin ) %>%
   mutate(mois = as.factor(month(date, label = TRUE, abbr = TRUE))) %>%
@@ -295,7 +314,8 @@ data_raw%>%
   guides(color=guide_legend(nrow=1)) +
   scale_color_paletteer_d("pals::tol")
 
-#plot d'un panel de graph K=f(Dsi) par site et coloriage des points par mois 
+#graph=panel
+#factor=site
 data_raw%>%
   # filter( date>=date_debut, date<=date_fin ) %>%
   mutate(mois = as.factor(month(date, label = TRUE, abbr = TRUE))) %>%
@@ -315,7 +335,8 @@ data_raw%>%
 
 #Ca=f(DSi)
 
-#plot d'un seul graph Ca=f(DSi) avec les valeurs de tous les sites sur le même graph et coloriage par mois
+#graph=1
+#factor=mois
 data_raw%>%
   # filter( date>=date_debut, date<=date_fin ) %>%
   mutate(mois = as.factor(month(date, label = TRUE, abbr = TRUE))) %>%
@@ -329,7 +350,8 @@ data_raw%>%
   guides(color=guide_legend(nrow=1)) +
   scale_color_paletteer_d("pals::tol")
 
-#plot d'un seul graph Ca=f(DSi) avec les valeurs de tous les sites sur le même graph et coloriage par site
+#graph=1
+#factor=site
 data_raw%>%
   # filter( date>=date_debut, date<=date_fin ) %>%
   mutate(mois = as.factor(month(date, label = TRUE, abbr = TRUE))) %>%
@@ -343,7 +365,8 @@ data_raw%>%
   guides(color=guide_legend(nrow=1)) +
   scale_color_paletteer_d("pals::tol")
 
-#plot d'un panel de graph Ca=f(Dsi) par site et coloriage des points par mois 
+#graph=panel
+#factor=site
 data_raw%>%
   # filter( date>=date_debut, date<=date_fin ) %>%
   mutate(mois = as.factor(month(date, label = TRUE, abbr = TRUE))) %>%
@@ -360,3 +383,184 @@ data_raw%>%
   scale_color_paletteer_d("pals::tol")
 
 ##########################################################
+#Cond=f(DSi)
+
+#lecture du sheet dans lequel est contenue la Cond
+
+dir_fiche <-"C:/PhD ISTO/BDD_Hydrochimie_LaGuette_2024-09-20.xlsx"
+
+data_raw2 <- read_excel(dir_fiche, sheet = 1,col_names=TRUE, range = cell_cols("A:H"),
+                       col_types = c(date = "date", site = "text", HEURE = "skip", Heau ="skip", Hvgtx = "skip",
+                                     WTL = "skip" , pH = "skip",Cond = "numeric")) %>%
+  filter( date>date_debut, date<date_fin ) %>%
+  filter(site =="FOSSE" | site =="riviere"| site =="CD_1"| site =="PZ2_U"
+         | site =="PZ2_D"| site =="PZ5_U"| site =="PZ4_D"| site =="CU_2") %>% #conservation uniquement des stations d'intérêt
+  mutate(site = as.factor(site)) #mutate:création d'une nouvelle variable-col avec
+#as.factor: les sites qui étaient des chaines de caractère deviennent des facteurs pour plot nos données (ex: plot moi la relation Si DOC par site)
+View(data_raw2) 
+
+
+#jointure data raw du DSi et data raw de la Cond
+data_raw_merged <- merge(data_raw, data_raw2, by=c("date", "site"))
+View(data_raw_merged)
+names(data_raw_merged)
+head(data_raw_merged)
+
+library(ggpubr)
+attach(data_raw_merged)
+#graph=1
+#factor=mois
+data_raw_merged%>%
+  # filter( date>=date_debut, date<=date_fin ) %>%
+  mutate(mois = as.factor(month(date, label = TRUE, abbr = TRUE))) %>%
+  ggplot(.,aes(x=dSi , y=Cond)) +
+  geom_point( aes(color=mois),size=3,na.rm = TRUE, shape = 18) +
+  stat_poly_line(linetype="dashed", size=0.25,se = TRUE) +
+  stat_poly_eq(use_label(c("eq", "R2")), na.rm=TRUE) +
+  geom_abline(intercept = 0, slope = 1, color="red")+
+  #stat_cor(method="pearson", aes(x=dSi, y=Cond))+
+  theme( plot.title = element_text(hjust=0.5),
+         legend.title = element_blank(), legend.position = "bottom",legend.direction = "horizontal" )+
+  guides(color=guide_legend(nrow=1)) +
+  scale_color_paletteer_d("pals::tol")
+
+#graph=1
+#factor=site
+data_raw_merged%>%
+  # filter( date>=date_debut, date<=date_fin ) %>%
+  mutate(mois = as.factor(month(date, label = TRUE, abbr = TRUE))) %>%
+  ggplot(.,aes(x=dSi , y=Cond)) +
+  geom_point( aes(color=site),size=3,na.rm = TRUE, shape = 18) +
+  stat_poly_line(linetype="dashed", size=0.25,se = TRUE) +
+  stat_poly_eq(use_label(c("eq", "R2")), na.rm=TRUE) +
+  geom_abline(intercept = 0, slope = 1, color="red")+
+  theme( plot.title = element_text(hjust=0.5),
+         legend.title = element_blank(), legend.position = "bottom",legend.direction = "horizontal" )+
+  guides(color=guide_legend(nrow=1)) +
+  scale_color_paletteer_d("pals::tol")
+
+#graph=panel
+#factor=site
+data_raw_merged%>%
+  # filter( date>=date_debut, date<=date_fin ) %>%
+  mutate(mois = as.factor(month(date, label = TRUE, abbr = TRUE))) %>%
+  ggplot(.,aes(x=dSi , y=Cond)) +
+  geom_point( aes(color=mois),size=3,na.rm = TRUE, shape = 18) +
+  stat_poly_line(linetype="dashed", size=0.25,se = TRUE) +
+  stat_poly_eq(use_label(c("eq", "R2")), na.rm=TRUE) +
+  geom_abline(intercept = 0, slope = 1, color="red") +
+  facet_wrap(.~fct_relevel(site, c("riviere", "CU_2", "PZ2_U", "PZ5_U",
+                                   "FOSSE", "CD_1", "PZ2_D", "PZ4_D")), ncol=4)+
+  theme( plot.title = element_text(hjust=0.5),
+         legend.title = element_blank(), legend.position = "bottom",legend.direction = "horizontal" )+
+  guides(color=guide_legend(nrow=1)) +
+  scale_color_paletteer_d("pals::tol")
+
+################################
+library(ggstatsplot)
+library(corrplot)
+library(GGally)
+
+
+attach(data_raw_merged)
+
+
+# Pearson correlation test
+test <- cor.test(dSi, DOC)
+test
+
+test <- cor.test(dSi, Cond)
+test
+
+#Combination of correlation coefficients and correlation tests
+#scatter plot
+ggscatterstats(
+  data = data_raw_merged,
+  x = dSi,
+  y = DOC,
+  bf.message = FALSE,
+  marginal = FALSE # remove histograms
+)
+
+ggscatterstats(
+  data = data_raw_merged,
+  x = dSi,
+  y = Cond,
+  bf.message = FALSE,
+  marginal = FALSE # remove histograms
+)
+
+
+
+#matrice montrant toutes les corr possibles
+library(correlation)
+
+correlation::correlation(data_raw_merged,
+                         include_factors = TRUE, method = "auto"
+)
+
+
+#CORRELOGRAMS
+
+###########################
+
+ggcorrmat(
+  data = data_raw_merged[, c("dSi", "DOC", "Cond")],
+  type = "parametric", # parametric for Pearson, nonparametric for Spearman's correlation
+  colors = c("darkred", "white", "steelblue") # change default colors
+)
+
+
+ggcorrmat(
+  data = data_raw_merged[, c("dSi", "DOC", "Cond", "TN", "Mg","K", "Ca")],
+  type = "parametric", # parametric for Pearson, nonparametric for Spearman's correlation
+  colors = c("darkred", "white", "steelblue") # change default colors
+)
+###############################"
+library(GGally)
+
+ggpairs(data_raw_merged[, c("dSi", "DOC", "Cond")])
+
+
+
+##############################
+testdsicond <- cor.test(dSi, Cond)
+testdsicond
+
+test <- cor.test(dSi, TN)
+test
+
+test <- cor.test(dSi, DOC)
+test
+
+test <- cor.test(Cond, Mg)
+test
+
+test <- cor.test(dSi, Mg)
+test
+
+test <- cor.test(dSi, K)
+test
+
+test <- cor.test(dSi, Ca)
+test
+
+library(Hmisc)
+
+data_raw %>%
+  select(,)
+res <- rcorr(as.matrix(data_raw)) # rcorr() accepts matrices only
+
+# display p-values (rounded to 3 decimals)
+round(res$P, 3)
+
+#########################
+#box plots
+
+
+library(rstatix)
+
+bxp <- ggboxplot(data_raw_merged, x = "site", y = "dSi", fill = "#00AFBB")
+bxp
+
+
