@@ -555,12 +555,91 @@ res <- rcorr(as.matrix(data_raw)) # rcorr() accepts matrices only
 round(res$P, 3)
 
 #########################
+#QUANTIFICATION DES FLUX
 #box plots
 
-
+#dSi##################
 library(rstatix)
 
-bxp <- ggboxplot(data_raw_merged, x = "site", y = "dSi", fill = "#00AFBB")
-bxp
+#boxplot by site
+data_raw_merged%>%
+  # filter( date>=date_debut, date<=date_fin ) %>%
+  mutate(mois = as.factor(month(date, label = TRUE, abbr = TRUE))) %>%
+  ggboxplot(.,x = "site", y = "dSi", fill = "grey") +
+  labs(title="",x="site", y = "dSi(mg/L)")+
+  geom_point( aes(color=mois),size=3,na.rm = TRUE, shape = 18, position = position_dodge(width = .75)) +
+  theme( plot.title = element_text(hjust=0.5),
+         legend.title = element_blank(), legend.position = "bottom",legend.direction = "horizontal" )+
+  guides(color=guide_legend(nrow=1)) +
+  scale_color_paletteer_d("pals::tol")
 
+#boxplot by month
+data_raw_merged%>%
+  # filter( date>=date_debut, date<=date_fin ) %>%
+  mutate(mois = as.factor(month(date, label = TRUE, abbr = TRUE))) %>%
+  ggboxplot(.,x = "mois", y = "dSi", fill = "grey") +
+  labs(title="",x="", y = "dSi(mg/L)")+
+  geom_point( aes(color=site),size=3,na.rm = TRUE, shape = 18, position = position_dodge(width = .75)) +
+  theme( plot.title = element_text(hjust=0.5),
+         legend.title = element_blank(), legend.position = "bottom",legend.direction = "horizontal" )+
+  guides(color=guide_legend(nrow=1)) +
+  scale_color_paletteer_d("pals::tol")
+
+#boxplot by season
+data_raw_merged %>%
+  mutate(season = case_when(month(date) %in% c(12, 1, 2) ~ "Winter", 
+                            month(date) %in% c(3, 4, 5) ~ "Spring", 
+                            month(date) %in% c(6, 7, 8) ~ "Summer", 
+                            TRUE ~ "Autumn")) %>%
+  ggboxplot(.,x = "season", y = "dSi", fill = "grey") +
+  labs(title="",x="", y = "dSi(mg/L)")+
+  geom_point( aes(color=site),size=3,na.rm = TRUE, shape = 18, position = position_dodge(width = .75)) +
+  theme( plot.title = element_text(hjust=0.5),
+         legend.title = element_blank(), legend.position = "bottom",legend.direction = "horizontal" )+
+  guides(color=guide_legend(nrow=1)) +
+  scale_color_paletteer_d("pals::tol")
+
+#DOC##########################
+#boxplot by site
+
+data_raw_merged%>%
+  # filter( date>=date_debut, date<=date_fin ) %>%
+  mutate(mois = as.factor(month(date, label = TRUE, abbr = TRUE))) %>%
+  ggboxplot(.,x = "site", y = "DOC", fill = "grey") +
+  labs(title="",x="site", y = "DOC(mg/L)")+
+  geom_point( aes(color=mois),size=3,na.rm = TRUE, shape = 18, position = position_dodge(width = .75)) +
+  theme( plot.title = element_text(hjust=0.5),
+         legend.title = element_blank(), legend.position = "bottom",legend.direction = "horizontal" )+
+  guides(color=guide_legend(nrow=1)) +
+  scale_color_paletteer_d("pals::tol")
+
+
+
+#boxplot by month
+data_raw_merged%>%
+  # filter( date>=date_debut, date<=date_fin ) %>%
+  mutate(mois = as.factor(month(date, label = TRUE, abbr = TRUE))) %>%
+  ggboxplot(.,x = "mois", y = "DOC", fill = "grey") +
+  labs(title="",x="", y = "DOC(mg/L)")+
+  geom_point( aes(color=site),size=3,na.rm = TRUE, shape = 18, position = position_dodge(width = .75)) +
+  theme( plot.title = element_text(hjust=0.5),
+         legend.title = element_blank(), legend.position = "bottom",legend.direction = "horizontal" )+
+  guides(color=guide_legend(nrow=1)) +
+  scale_color_paletteer_d("pals::tol")
+
+
+
+#boxplot by season
+data_raw_merged %>%
+  mutate(season = case_when(month(date) %in% c(12, 1, 2) ~ "Winter", 
+                            month(date) %in% c(3, 4, 5) ~ "Spring", 
+                            month(date) %in% c(6, 7, 8) ~ "Summer", 
+                            TRUE ~ "Autumn")) %>%
+  ggboxplot(.,x = "season", y = "DOC", fill = "grey") +
+  labs(title="",x="", y = "DOC(mg/L)") +
+  geom_point( aes(color=site),size=3,na.rm = TRUE, shape = 18, position = position_dodge(width = .75)) +
+  theme( plot.title = element_text(hjust=0.5),
+         legend.title = element_blank(), legend.position = "bottom",legend.direction = "horizontal" )+
+  guides(color=guide_legend(nrow=1)) +
+  scale_color_paletteer_d("pals::tol")
 
