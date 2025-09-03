@@ -1,0 +1,219 @@
+#Objectif: distinguer les sources. Quelles stations ont le même comportement et peuvent être regroupées ?
+##########################
+#LIBRARY
+library(tidyverse)
+library(conflicted)
+library(janitor)
+library(paletteer)
+library(ggpmisc)
+library(pracma)
+library(ggpubr)
+library(forecast)
+library(formatR)
+library(readxl)
+library(corrplot)
+library(ggplot2)
+library(rstatix)
+
+
+conflict_prefer("filter", "dplyr")
+conflict_prefer("select", "dplyr")
+conflict_prefer("summarise", "dplyr")
+conflict_prefer("relocate", "dplyr")
+conflict_prefer("mutate", "dplyr")
+conflict_prefer("group_by", "dplyr")
+conflict_prefer("arrange", "dplyr")
+conflict_prefer("transmute", "dplyr")
+conflict_prefer("ggplot", "ggplot2")
+conflict_prefer("ymd", "lubridate")
+
+
+#IMPORTATION
+dir_fiche <-"C:/PhD ISTO/La_Guette/data_la_guette/BDD_Hydrochimie_LaGuette_2024-09-20.xlsx"
+
+date_debut<-"2021-09-01" #correspond à arrivée de Nicolas (Freslon)
+date_fin<-"2024-08-01" 
+
+#table analyses élémentaires
+data_raw <- read_excel(dir_fiche, sheet = 2,col_names=TRUE, range = cell_cols("A:Y"),
+                       col_types = c(date = "date", site = "text", 
+                                     dSi = "numeric", edSi ="numeric", 
+                                     DOC = "numeric", eDOC= "numeric",
+                                     TN= "numeric", eTN="numeric",
+                                     Abs254="numeric", eABS254="numeric",
+                                     SUVA="numeric", eSUVA="numeric",
+                                     DIC="numeric", eDIC="numeric", Alcalinité="numeric",
+                                     NO2="numeric", SO4="numeric", 
+                                     NO3="numeric", PO4="numeric",Cl="numeric",NH4="numeric",
+                                     Na="numeric", Mg="numeric",
+                                     K="numeric", Ca= "numeric")) %>%
+  filter( date>=date_debut, date<=date_fin ) %>%
+  mutate(month = as.factor(month(date, label = TRUE, abbr = TRUE, locale="en")),
+         site = recode(site,
+                       "riviere" = "River",
+                       "FOSSE" = "Outlet")) %>%
+  filter(site %in% c("CU_2", "PZ2_U", "PZ5_U", "CD_1", "PZ2_D", "PZ4_D")) %>%
+  mutate(site = as.factor(site))
+View(data_raw)
+
+#table physico-chimie
+data_raw_2 <- read_excel(dir_fiche, sheet = 1,col_names=TRUE, range = cell_cols("A:K"),
+                         col_types = c(date = "date", site = "text", HEURE = "skip", Heau ="skip", Hvgtx = "skip",
+                                       WTL = "numeric" , pH = "numeric",Cond = "numeric", O2="skip", Redox="skip", Temp="numeric")) %>% #on ne peut pas utiliser le WTL fosse et riv pour établir des corr avec DOC
+  filter( date>=date_debut, date<=date_fin ) %>%
+  mutate(month = as.factor(month(date, label = TRUE, abbr = TRUE, locale="en")),
+         site = recode(site,
+                       "riviere" = "River",
+                       "FOSSE" = "Outlet")) %>%
+  filter(site %in% c("CU_2", "PZ2_U", "PZ5_U", "CD_1", "PZ2_D", "PZ4_D")) %>%
+  mutate(site = as.factor(site))
+View(data_raw_2) 
+
+#jointure des 2 tables pour obtenir toutes les variables que l'on souhaite dans notre ACP
+data_raw <- merge(data_raw, data_raw_2, by=c("date", "site"))
+View(data_raw) 
+
+summary(data_raw) 
+
+############# PREPARATION DU DATAFRAME AVEC LES VARIABLES QUI NOUS INTERESSENT et le passage au log du rapport sur Cl
+data_raw_pca <- data_raw %>%
+  filter(site %in% c("CU_2", "PZ2_U", "PZ5_U", "CD_1", "PZ2_D", "PZ4_D")) %>% #fossé et rivière enlevés
+  mutate(site = as.factor(site)) %>%
+  mutate(
+    log_DOC_Cl  = log(DOC / Cl), #normalisation par rapport à Cl, log pour se rapprocher d'une distribution bayésienne normale
+    log_TN_Cl  = log(TN / Cl),
+    log_dSi_Cl = log(dSi / Cl),
+    log_Na_Cl  = log(Na / Cl),
+    log_Mg_Cl  = log(Mg / Cl),
+    log_K_Cl   = log(K / Cl),
+    log_Ca_Cl  = log(Ca / Cl)
+  ) %>%
+  select(
+    date, site,
+    log_DOC_Cl, 
+    log_TN_Cl,
+    log_dSi_Cl,
+    log_Na_Cl, 
+    log_Mg_Cl, 
+    log_K_Cl, 
+    log_Ca_Cl,
+  )
+
+View(data_raw_pca)
+
+#################### ACP
+
+attach(data_raw_pca)
+library(FactoMineR)
+library(explor)
+library(factoextra)
+
+pca = PCA(data_raw_pca[,3:6])
+pca
+plot.PCA(pca, choix="ind")
+
+pca$eig
+pca$var
+pca$var$cos2
+#explor::explor(pca) #INTERFACE R SHINY
+
+fviz_pca_ind(pca, 
+             axes = c(1,2),
+             geom.ind = "point",
+             habillage = data_raw_pca$site,   # <-- ici plutôt que col.ind
+             palette = "Dark2",
+             addEllipses = TRUE,
+             legend.title = "Sampling stations")
+
+# Biplot (individus + variables)
+fviz_pca_biplot(pca, 
+                geom.ind = "point",
+                habillage = data_raw_pca$site, # <-- pareil
+                palette = "Dark2",
+                addEllipses = TRUE,
+                label = "var",
+                col.var = "black",
+                repel = TRUE,
+                legend.title ="Sampling stations")
+
+fviz_pca_ind(pca, geom.ind = "point", pointsize = "cos2")
+
+
+#####################RATIO SUR Na
+data_raw_pca <- data_raw %>%
+  filter(site %in% c("CU_2", "PZ2_U", "PZ5_U", "CD_1", "PZ2_D", "PZ4_D")) %>% #fossé et rivière enlevés
+  mutate(site = as.factor(site)) %>%
+  mutate(
+    #log_DOC_Na  = log(DOC / Na), #normalisation par rapport à Cl, log pour se rapprocher d'une distribution bayésienne normale
+    #log_TN_Na  = log(TN / Na),
+    #log_dSi_Na = log(dSi / Na),
+    log_Cl_Na  = log(Cl / Na),
+    log_Mg_Na  = log(Mg / Na),
+    log_K_Na   = log(K / Na),
+    log_Ca_Na  = log(Ca / Na)
+  ) %>%
+  select(
+    date, site,
+    #log_DOC_Na, 
+    #log_TN_Na,
+    #log_dSi_Na,
+    log_Cl_Na, 
+    log_Mg_Na, 
+    log_K_Na, 
+    log_Ca_Na,
+  )
+
+View(data_raw_pca)
+
+
+attach(data_raw_pca)
+library(FactoMineR)
+library(explor)
+library(factoextra)
+
+pca = PCA(data_raw_pca[,3:6])
+pca
+plot.PCA(pca, choix="ind")
+
+pca$eig
+pca$var
+pca$var$cos2
+#explor::explor(pca) #INTERFACE R SHINY
+
+fviz_pca_ind(pca, 
+             axes = c(1,2),
+             geom.ind = "point",
+             habillage = data_raw_pca$site,   # <-- ici plutôt que col.ind
+             palette = "Dark2",
+             addEllipses = TRUE,
+             legend.title = "Sampling stations")
+
+# Biplot (individus + variables)
+fviz_pca_biplot(pca, 
+                geom.ind = "point",
+                habillage = data_raw_pca$site, # <-- pareil
+                palette = "Dark2",
+                addEllipses = TRUE,
+                label = "var",
+                col.var = "black",
+                repel = TRUE,
+                legend.title ="Sampling stations")
+
+############################### ACP est visuelle mais comment montrer statistiquement que des stations sont distinctes ?
+
+#Voici différents tests statistiques
+
+
+###########################################
+#PERMANOVA, test non paramétrique (données environnementales ne suivent pas de distribution normale)
+
+
+
+
+
+# test post-hoc pairwise (PERMANOVA pairwise) pour savoir quels sites diffèrent de quels autres
+
+library(RVAideMemoire)
+pairwise.perm.manova(dist_mat, data_used$site, nperm = 999)
+
+################################################
